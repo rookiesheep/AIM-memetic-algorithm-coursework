@@ -223,10 +223,10 @@ bool copy_solution(struct solution_struct* dest_sln, struct solution_struct* sou
     {
         dest_sln = malloc(sizeof(struct solution_struct));
     }
-    else{
-        free(dest_sln->cap_left);
-        free(dest_sln->x);
-    }
+    // if(dest_sln->cap_left != NULL && dest_sln->x != NULL) {
+    //     free(dest_sln->cap_left);
+    //     free(dest_sln->x);
+    // }
     int n = source_sln->prob->n;
     int m =source_sln->prob->dim;
     dest_sln->x = malloc(sizeof(int)*n);
@@ -262,9 +262,10 @@ void cross_over(struct solution_struct* curt_pop, struct solution_struct* new_po
         if(exchange_rate > CROSSOVER_RATE){
             int exchange_node = rand_int(0, chromosome_length);
             for(int i = exchange_node; i < chromosome_length; i++) {
-                int temp = new_pop[p].x[i];
-                new_pop[p].x[i] = new_pop[p+pair].x[i];
-                new_pop[p+pair].x[i] = temp;
+                int temp_1 = new_pop[p].x[i];
+                int temp_2 = new_pop[p+pair].x[i];
+                new_pop[p].x[i] = temp_2;
+                new_pop[p+pair].x[i] = temp_1;
             }
             evaluate_solution(&new_pop[p]);
             evaluate_solution(&new_pop[p+pair]);
@@ -338,7 +339,7 @@ void local_search_first_descent(struct solution_struct* pop) {
                     continue;
                 }
                 else {
-                    pop[p].x[i] == 1;
+                    pop[p].x[i] = 1;
                     x_capacity = 2;
                     break;
                 }
@@ -351,45 +352,45 @@ void local_search_first_descent(struct solution_struct* pop) {
     }
 }
 
-// // replacement
-// void replacement(struct solution_struct* curt_pop, struct solution_struct* new_pop)
-// {
-//     //todo
-//     //sorting the top 100 population from curt_pop and new_pop
-//     //replace the top 100 population to new_pop
+// replacement
+void replacement(struct solution_struct* curt_pop, struct solution_struct* new_pop)
+{
+    //todo
+    //sorting the top 100 population from curt_pop and new_pop
+    //replace the top 100 population to new_pop
 
-//     struct solution_struct rep_pop[POP_SIZE*2];
-//     struct solution_struct temp_pop;
+    struct solution_struct rep_pop[POP_SIZE*2];
+    struct solution_struct temp_pop;
  
-//     for(int i = 0; i < POP_SIZE; i++) {
-//         copy_solution(&rep_pop[i], &curt_pop[i]);
-//     }
-//     for(int j = 0; j < POP_SIZE; j++) {
-//         copy_solution(&rep_pop[POP_SIZE+j], &new_pop[j]);
-//     }
-//     //insertion sort
-//     for(int k = 1; k < POP_SIZE*2; k++) {
-//         copy_solution(&temp_pop, &rep_pop[k]);
-//         for(int i = k; i > 0 && rep_pop[k-1].objective < temp_pop.objective; i--) {
-//             copy_solution(&rep_pop[k], &rep_pop[k-1]);
-//             copy_solution(&rep_pop[k-1], &temp_pop);
-//         }
-//     }
-//     //replacing the top100 to the new_pop
-//     for(int l = 0; l < POP_SIZE; l++) {
-//         copy_solution(&new_pop[l], &rep_pop[l]);
-//     }
-//     free_population(rep_pop, POP_SIZE*2);
-//     if(temp_pop.x!=NULL && temp_pop.cap_left!=NULL) { 
-//         free(temp_pop.cap_left); 
-//         free(temp_pop.x);
-//     } 
-// }
+    for(int i = 0; i < POP_SIZE; i++) {
+        copy_solution(&rep_pop[i], &curt_pop[i]);
+    }
+    for(int j = 0; j < POP_SIZE; j++) {
+        copy_solution(&rep_pop[POP_SIZE+j], &new_pop[j]);
+    }
+    //insertion sort
+    for(int k = 1; k < POP_SIZE*2; k++) {
+        copy_solution(&temp_pop, &rep_pop[k]);
+        for(int i = k; i > 0 && rep_pop[k-1].objective < rep_pop[k].objective; i--) {
+            copy_solution(&rep_pop[k], &rep_pop[k-1]);
+            copy_solution(&rep_pop[k-1], &temp_pop);
+        }
+    }
+    //replacing the top100 to the new_pop
+    for(int l = 0; l < POP_SIZE; l++) {
+        copy_solution(&new_pop[l], &rep_pop[l]);
+    }
+    free_population(rep_pop, POP_SIZE*2);
+    if(temp_pop.x!=NULL && temp_pop.cap_left!=NULL) { 
+        free(temp_pop.cap_left); 
+        free(temp_pop.x);
+    } 
+}
 
 // update global best solution with best solution from pop if better
 void update_best_solution(struct solution_struct* pop)
 {
-    // best_sln = pop[0];
+    copy_solution(&best_sln, pop);
     // output_solution(&best_sln, NULL);
 }
 
@@ -410,7 +411,7 @@ int MA(struct problem_struct* prob)
         mutation(new_pop);
         feasibility_repair(new_pop);
         local_search_first_descent(new_pop);
-        // replacement(curt_pop, new_pop);
+        replacement(curt_pop, new_pop);
         gen++;
         time_fin=clock();
         time_spent = (double)(time_fin-time_start)/CLOCKS_PER_SEC;
@@ -436,16 +437,16 @@ int main(int argc, const char * argv[]){
     fp = fopen(argv[2], "r");
     fscanf(fp,"%d", &num_of_problems);
     fclose(fp);
-
-
+    printf("%d\n", num_of_problems);
     struct problem_struct** my_problems = load_problems(argv[2]);
+    
     for(int k=0; k<num_of_problems; k++) {
-        printf("This is the solution of problem %d",k+1);
+        printf("This is the solution of problem %d\n",k+1);
         for(int run=0; run<NUM_OF_RUNS; run++) {
             srand(RAND_SEED[run]);
             MA(my_problems[k]); //call MA
-            output_solution(&best_sln, argv[4]);
         }
+        output_solution(&best_sln, NULL);
         free_problem(my_problems[k]); //free problem data memory
     }
     free(my_problems); //free problems array
@@ -453,7 +454,6 @@ int main(int argc, const char * argv[]){
         free(best_sln.cap_left); 
         free(best_sln.x);
     } //free global
-
 
     return 0;
 }
