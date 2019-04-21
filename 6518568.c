@@ -133,14 +133,14 @@ struct problem_struct** load_problems(const char *filename)
         for(i = 0; i < dim; i++) {
             int capacities;
             fscanf(fp,"%d", &capacities);
-            printf("%d\n", capacities);
+            // printf("%d\n", capacities);
             my_problems[k]->capacities[i] = capacities;
             counter++;
         }
         // printf("p: %d\n", counter);
     }
-    // printf("一共：%d", counter);
-    // printf("initialzed successfully!");
+    // printf("total：%d", counter);
+    printf("initialzed successfully!");
     fclose(fp);
     return my_problems;
 }
@@ -256,6 +256,9 @@ void free_population(struct solution_struct* pop, int size)
     {
         free(pop[p].x);
         free(pop[p].cap_left);
+        pop[p].objective = 0;
+        pop[p].feasibility = 0;
+        free_problem(pop[p].prob);
     }
 }
 
@@ -279,7 +282,7 @@ void cross_over(struct solution_struct* curt_pop, struct solution_struct* new_po
             evaluate_solution(&new_pop[p+pair]);
         }
     }
-    // printf("cross_over successfully!");
+    printf("cross_over successfully!");
 }
 
 //apply mutation to a population
@@ -288,7 +291,7 @@ void mutation(struct solution_struct* pop)
 {
     int mutationRate = 0;
     for(int p = 0; p < POP_SIZE; p++) {
-        int j = (int)pop[p].x;
+        int j = pop[p].prob->n;
         for(int i = 0; i < j; i++) {
             int mutationRate = rand_01();
             if(mutationRate > MUTATION_RATE) {
@@ -302,7 +305,7 @@ void mutation(struct solution_struct* pop)
         }
         evaluate_solution(&pop[p]);
     }
-    // printf("mutation successfully!");
+    printf("mutation successfully!");
 }
 
 //modify the solutions that violate the capacity constraints
@@ -326,7 +329,7 @@ void feasibility_repair(struct solution_struct* pop) {
             }
         }
     }
-    // printf("feasibility_repair successfully!");
+    printf("feasibility_repair successfully!");
 }
 
 //local search
@@ -354,6 +357,7 @@ void local_search_first_descent(struct solution_struct* pop)
         }
         evaluate_solution(&pop[p]);
     }
+        printf("local_search_first_descent successfully!");
 }
 
 //replacement
@@ -362,8 +366,23 @@ void replacement(struct solution_struct* curt_pop, struct solution_struct* new_p
     //todo
     //sorting the top 100 population from curt_pop and new_pop
     //replace the top 100 population to new_pop
+
     struct solution_struct rep_pop[POP_SIZE*2];
-    struct solution_struct temp_pop;
+    struct solution_struct temp_pop[0];
+    for(int p = 0; p<POP_SIZE*2; p++){
+     rep_pop[p].prob = curt_pop[0].prob;
+    rep_pop[p].x = malloc(sizeof(int)*curt_pop[0].prob->n);
+    rep_pop[p].cap_left = malloc(sizeof(int)*curt_pop[0].prob->dim);
+    for(int j=0; j<curt_pop[0].prob->n; j++)    rep_pop[p].x[j] = 0;
+    for(int i=0; i<curt_pop[0].prob->dim; i++)  rep_pop[p].cap_left[i]=curt_pop[0].prob->capacities[i];
+    }
+    
+    temp_pop[0].prob = curt_pop[0].prob;
+    temp_pop[0].x = malloc(sizeof(int)*curt_pop[0].prob->n);
+    temp_pop[0].cap_left = malloc(sizeof(int)*curt_pop[0].prob->dim);
+    for(int jt=0; jt<curt_pop[0].prob->n; jt++)    temp_pop[0].x[jt] = 0;
+    for(int it=0; it<curt_pop[0].prob->dim; it++)  temp_pop[0].cap_left[it]=curt_pop[0].prob->capacities[it];
+
     for(int i = 0; i < POP_SIZE; i++) {
         copy_solution(&rep_pop[i], &curt_pop[i]);
         //if not printout error
@@ -374,16 +393,18 @@ void replacement(struct solution_struct* curt_pop, struct solution_struct* new_p
     }
     //insertion sort
     for(int k = 1; k < POP_SIZE*2; k++) {
-        copy_solution(&temp_pop, &rep_pop[k]);
-        for(int i = k; i > 0 && rep_pop[k-1].objective < temp_pop.objective; i--) {
+        copy_solution(&temp_pop[0], &rep_pop[k]);
+        for(int i = k; i > 0 && rep_pop[k-1].objective < temp_pop[0].objective; i--) {
             copy_solution(&rep_pop[k], &rep_pop[k-1]);
-            copy_solution(&rep_pop[k-1], &temp_pop);
+            copy_solution(&rep_pop[k-1], &temp_pop[0]);
         }
     }
     //replacing the top100 to the new_pop
     for(int l = 0; l < POP_SIZE; l++) {
         copy_solution(&new_pop[l], &rep_pop[l]);
     }
+    free_population(rep_pop, POP_SIZE*2);
+    // free_population(&temp_pop[0], 1);
 }
 
 //update global best solution with best solution from pop if better
@@ -416,11 +437,11 @@ int MA(struct problem_struct* prob)
         time_spent = (double)(time_fin-time_start)/CLOCKS_PER_SEC;
     }
     
-    update_best_solution(curt_pop);
+    // update_best_solution(curt_pop);
     
     
-    free_population(curt_pop, POP_SIZE);
-    free_population(new_pop, POP_SIZE);
+    // free_population(curt_pop, POP_SIZE);
+    // free_population(new_pop, POP_SIZE);
     
     return 0;
 }
