@@ -232,10 +232,10 @@ bool copy_solution(struct solution_struct* dest_sln, struct solution_struct* sou
     {
         dest_sln = malloc(sizeof(struct solution_struct));
     }
-    else{
-        free(dest_sln->cap_left);
-        free(dest_sln->x);
-    }
+    // else{
+    //     free(dest_sln->cap_left);
+    //     free(dest_sln->x);
+    // }
     int n = source_sln->prob->n;
     int m =source_sln->prob->dim;
     dest_sln->x = malloc(sizeof(int)*n);
@@ -369,20 +369,7 @@ void replacement(struct solution_struct* curt_pop, struct solution_struct* new_p
 
     struct solution_struct rep_pop[POP_SIZE*2];
     struct solution_struct temp_pop[0];
-    for(int p = 0; p<POP_SIZE*2; p++){
-     rep_pop[p].prob = curt_pop[0].prob;
-    rep_pop[p].x = malloc(sizeof(int)*curt_pop[0].prob->n);
-    rep_pop[p].cap_left = malloc(sizeof(int)*curt_pop[0].prob->dim);
-    for(int j=0; j<curt_pop[0].prob->n; j++)    rep_pop[p].x[j] = 0;
-    for(int i=0; i<curt_pop[0].prob->dim; i++)  rep_pop[p].cap_left[i]=curt_pop[0].prob->capacities[i];
-    }
-    
-    temp_pop[0].prob = curt_pop[0].prob;
-    temp_pop[0].x = malloc(sizeof(int)*curt_pop[0].prob->n);
-    temp_pop[0].cap_left = malloc(sizeof(int)*curt_pop[0].prob->dim);
-    for(int jt=0; jt<curt_pop[0].prob->n; jt++)    temp_pop[0].x[jt] = 0;
-    for(int it=0; it<curt_pop[0].prob->dim; it++)  temp_pop[0].cap_left[it]=curt_pop[0].prob->capacities[it];
-
+ 
     for(int i = 0; i < POP_SIZE; i++) {
         copy_solution(&rep_pop[i], &curt_pop[i]);
         //if not printout error
@@ -431,7 +418,7 @@ int MA(struct problem_struct* prob)
         mutation(new_pop);
         feasibility_repair(new_pop);
         local_search_first_descent(new_pop);
-        replacement(curt_pop, new_pop);
+        // replacement(curt_pop, new_pop);
         gen++;
         time_fin=clock();
         time_spent = (double)(time_fin-time_start)/CLOCKS_PER_SEC;
