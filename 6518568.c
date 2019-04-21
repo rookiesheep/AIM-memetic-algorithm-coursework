@@ -60,15 +60,16 @@ struct solution_struct{
 
 void free_problem(struct problem_struct* prob)
 {
-    if(prob!=NULL)
+    if(prob != NULL)
     {
-        if(prob->capacities !=NULL) free(prob->capacities);
-        if(prob->items!=NULL)
-        {
-            for(int j=0; j<prob->n; j++)
-            {
-                if(prob->items[j].size != NULL)
+        if(prob->capacities !=NULL) {
+            free(prob -> capacities);
+        }
+        if(prob->items!=NULL) {
+            for(int j = 0; j < prob->n; j++) {
+                if(prob->items[j].size != NULL) {
                     free(prob->items[j].size);
+                }
             }
             free(prob->items);
         }
@@ -232,10 +233,10 @@ bool copy_solution(struct solution_struct* dest_sln, struct solution_struct* sou
     {
         dest_sln = malloc(sizeof(struct solution_struct));
     }
-    // else{
-    //     free(dest_sln->cap_left);
-    //     free(dest_sln->x);
-    // }
+    else{
+        free(dest_sln->cap_left);
+        free(dest_sln->x);
+    }
     int n = source_sln->prob->n;
     int m =source_sln->prob->dim;
     dest_sln->x = malloc(sizeof(int)*n);
@@ -250,15 +251,12 @@ bool copy_solution(struct solution_struct* dest_sln, struct solution_struct* sou
     return true;
 }
 
-void free_population(struct solution_struct* pop, int size)
-{
-    for(int p=0; p<size; p++)
-    {
+void free_population(struct solution_struct* pop, int size) {
+    for(int p=0; p<size; p++) {   
+        if(pop[p].x != NULL && pop[p].cap_left != NULL) {
         free(pop[p].x);
         free(pop[p].cap_left);
-        pop[p].objective = 0;
-        pop[p].feasibility = 0;
-        free_problem(pop[p].prob);
+        }
     }
 }
 
@@ -282,7 +280,7 @@ void cross_over(struct solution_struct* curt_pop, struct solution_struct* new_po
             evaluate_solution(&new_pop[p+pair]);
         }
     }
-    printf("cross_over successfully!");
+    // printf("cross_over successfully!");
 }
 
 //apply mutation to a population
@@ -305,7 +303,7 @@ void mutation(struct solution_struct* pop)
         }
         evaluate_solution(&pop[p]);
     }
-    printf("mutation successfully!");
+    // printf("mutation successfully!");
 }
 
 //modify the solutions that violate the capacity constraints
@@ -329,7 +327,7 @@ void feasibility_repair(struct solution_struct* pop) {
             }
         }
     }
-    printf("feasibility_repair successfully!");
+    // printf("feasibility_repair successfully!");
 }
 
 //local search
@@ -357,10 +355,10 @@ void local_search_first_descent(struct solution_struct* pop)
         }
         evaluate_solution(&pop[p]);
     }
-        printf("local_search_first_descent successfully!");
+        // printf("local_search_first_descent successfully!");
 }
 
-//replacement
+// replacement
 void replacement(struct solution_struct* curt_pop, struct solution_struct* new_pop)
 {
     //todo
@@ -368,22 +366,20 @@ void replacement(struct solution_struct* curt_pop, struct solution_struct* new_p
     //replace the top 100 population to new_pop
 
     struct solution_struct rep_pop[POP_SIZE*2];
-    struct solution_struct temp_pop[0];
+    struct solution_struct temp_pop;
  
     for(int i = 0; i < POP_SIZE; i++) {
         copy_solution(&rep_pop[i], &curt_pop[i]);
-        //if not printout error
     }
     for(int j = 0; j < POP_SIZE; j++) {
         copy_solution(&rep_pop[POP_SIZE+j], &new_pop[j]);
-        //if not printout error
     }
     //insertion sort
     for(int k = 1; k < POP_SIZE*2; k++) {
-        copy_solution(&temp_pop[0], &rep_pop[k]);
-        for(int i = k; i > 0 && rep_pop[k-1].objective < temp_pop[0].objective; i--) {
+        copy_solution(&temp_pop, &rep_pop[k]);
+        for(int i = k; i > 0 && rep_pop[k-1].objective < temp_pop.objective; i--) {
             copy_solution(&rep_pop[k], &rep_pop[k-1]);
-            copy_solution(&rep_pop[k-1], &temp_pop[0]);
+            copy_solution(&rep_pop[k-1], &temp_pop);
         }
     }
     //replacing the top100 to the new_pop
@@ -391,7 +387,10 @@ void replacement(struct solution_struct* curt_pop, struct solution_struct* new_p
         copy_solution(&new_pop[l], &rep_pop[l]);
     }
     free_population(rep_pop, POP_SIZE*2);
-    // free_population(&temp_pop[0], 1);
+    if(temp_pop.x!=NULL && temp_pop.cap_left!=NULL) { 
+        free(temp_pop.cap_left); 
+        free(temp_pop.x);
+    } 
 }
 
 //update global best solution with best solution from pop if better
@@ -427,8 +426,8 @@ int MA(struct problem_struct* prob)
     // update_best_solution(curt_pop);
     
     
-    // free_population(curt_pop, POP_SIZE);
-    // free_population(new_pop, POP_SIZE);
+    free_population(curt_pop, POP_SIZE);
+    free_population(new_pop, POP_SIZE);
     
     return 0;
 }
@@ -457,7 +456,10 @@ int main(int argc, const char * argv[]){
         free_problem(my_problems[k]); //free problem data memory
     }
     free(my_problems); //free problems array
-    if(best_sln.x!=NULL && best_sln.cap_left!=NULL){ free(best_sln.cap_left); free(best_sln.x);} //free global
+    if(best_sln.x!=NULL && best_sln.cap_left!=NULL) { 
+        free(best_sln.cap_left); 
+        free(best_sln.x);
+    } //free global
 
 
     return 0;
