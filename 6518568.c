@@ -10,9 +10,9 @@
 int RAND_SEED[] = {1,20,30,40,50,60,70,80,90,100,110, 120, 130, 140, 150, 160, 170, 180, 190, 200};
 int NUM_OF_RUNS = 5;
 static int POP_SIZE = 100; //global parameters
-int MAX_NUM_OF_GEN = 1000; //max number of generations
+int MAX_NUM_OF_GEN = 2000; //max number of generations
 int MAX_TIME = 60;  //max amount of time permited (in sec)
-float CROSSOVER_RATE = 0.8;
+float CROSSOVER_RATE = 0.5;
 float MUTATION_RATE = 0.1;
 
 struct solution_struct best_sln;  //global best solution
@@ -164,10 +164,16 @@ void output_solution(struct solution_struct* sln, const char* out_file) {
     // printf("sln.feas=%d, sln.obj=%f\n", sln->feasibility, sln->objective);
     printf("%f\n",sln->objective);
     int number_of_items = (int)sln->prob->n;
-    for(int i = 0; i < number_of_items; i++) {
-        printf("%d ", sln->x[i]);
-    }
-    printf("\n");
+    // for(int i = 0; i < number_of_items; i++) {
+    //     printf("%d ", sln->x[i]);
+    // }
+    // printf("\n");
+    // if(sln->feasibility < 0 ) {
+    //     printf("error!!");
+    // }
+    // if(sln->feasibility > 0 ) {
+    //     printf("lucky!\n");
+    // }
 }
 
 //intialise the population with random solutions
@@ -259,13 +265,14 @@ void cross_over(struct solution_struct* curt_pop, struct solution_struct* new_po
     for(int p = 0; p < pair; p++) {
         float exchange_rate = rand_01();
         int chromosome_length = new_pop[p].prob->n-1;
-        if(exchange_rate > CROSSOVER_RATE){
+        if(exchange_rate < CROSSOVER_RATE){
             int exchange_node = rand_int(0, chromosome_length);
-            for(int i = exchange_node; i < chromosome_length; i++) {
+            for(int i = exchange_node; i < chromosome_length + 1; i++) {
                 int temp_1 = new_pop[p].x[i];
                 int temp_2 = new_pop[p+pair].x[i];
                 new_pop[p].x[i] = temp_2;
                 new_pop[p+pair].x[i] = temp_1;
+                // printf("%d %d--%d %d\n", temp_1, temp_2, new_pop[p+pair].x[i], new_pop[p].x[i]);
             }
             evaluate_solution(&new_pop[p]);
             evaluate_solution(&new_pop[p+pair]);
@@ -279,10 +286,10 @@ void cross_over(struct solution_struct* curt_pop, struct solution_struct* new_po
 void mutation(struct solution_struct* pop) {
     float mutationRate = 0;
     for(int p = 0; p < POP_SIZE; p++) {
-        int j = pop[p].prob->n;
-        for(int i = 0; i < j; i++) {
+        for(int i = 0; i < pop[p].prob->n; i++) {
             mutationRate = rand_01();
-            if(mutationRate >= MUTATION_RATE) {
+            // printf("%f\n",mutationRate);
+            if(mutationRate <= MUTATION_RATE) {
                 if(pop[p].x[i] ==1) {
                     pop[p].x[i] = 0;
                 }
@@ -363,22 +370,33 @@ void replacement(struct solution_struct* curt_pop, struct solution_struct* new_p
     struct solution_struct temp_pop;
  
     for(int i = 0; i < POP_SIZE; i++) {
-        copy_solution(&rep_pop[i], &curt_pop[i]);
+        if(copy_solution(&rep_pop[i], &curt_pop[i])){
+            // printf("copy curt!\n");
+        }
     }
     for(int j = 0; j < POP_SIZE; j++) {
-        copy_solution(&rep_pop[POP_SIZE+j], &new_pop[j]);
+        if(copy_solution(&rep_pop[POP_SIZE+j], &new_pop[j])){
+            // printf("copy new!\n");
+        }
     }
     //insertion sort
     for(int k = 1; k < POP_SIZE*2; k++) {
-        copy_solution(&temp_pop, &rep_pop[k]);
+        if(copy_solution(&temp_pop, &rep_pop[k])){
+            // printf("new temp!");
+        }
         for(int i = k; i > 0 && rep_pop[k-1].objective < rep_pop[k].objective; i--) {
-            copy_solution(&rep_pop[k], &rep_pop[k-1]);
-            copy_solution(&rep_pop[k-1], &temp_pop);
+            if(copy_solution(&rep_pop[k], &rep_pop[k-1])){
+                // printf("good copy1");
+            }
+            if(copy_solution(&rep_pop[k-1], &temp_pop)){
+                // printf("good copy2");
+            }
         }
     }
     //replacing the top100 to the new_pop
     for(int l = 0; l < POP_SIZE; l++) {
         copy_solution(&new_pop[l], &rep_pop[l]);
+        copy_solution(&curt_pop[l], &rep_pop[l]);
     }
     free_population(rep_pop, POP_SIZE*2);
     if(temp_pop.x!=NULL && temp_pop.cap_left!=NULL) { 
