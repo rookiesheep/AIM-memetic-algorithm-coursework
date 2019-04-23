@@ -9,11 +9,11 @@
 /* parameters */
 int RAND_SEED[] = {1,20,30,40,50,60,70,80,90,100,110, 120, 130, 140, 150, 160, 170, 180, 190, 200};
 int NUM_OF_RUNS = 5;
-static int POP_SIZE = 100; //global parameters
-int MAX_NUM_OF_GEN = 2000; //max number of generations
+static int POP_SIZE = 200; //global parameters
+int MAX_NUM_OF_GEN = 1000; //max number of generations
 int MAX_TIME = 60;  //max amount of time permited (in sec)
-float CROSSOVER_RATE = 0.5;
-float MUTATION_RATE = 0.1;
+float CROSSOVER_RATE = 0.8;
+float MUTATION_RATE = 0.2;
 
 struct solution_struct best_sln;  //global best solution
 
@@ -163,17 +163,11 @@ void evaluate_solution(struct solution_struct* sln)
 void output_solution(struct solution_struct* sln, const char* out_file) {
     // printf("sln.feas=%d, sln.obj=%f\n", sln->feasibility, sln->objective);
     printf("%f\n",sln->objective);
-    int number_of_items = (int)sln->prob->n;
+    // int number_of_items = (int)sln->prob->n;
     // for(int i = 0; i < number_of_items; i++) {
     //     printf("%d ", sln->x[i]);
     // }
     // printf("\n");
-    // if(sln->feasibility < 0 ) {
-    //     printf("error!!");
-    // }
-    // if(sln->feasibility > 0 ) {
-    //     printf("lucky!\n");
-    // }
 }
 
 //intialise the population with random solutions
@@ -261,21 +255,21 @@ void free_population(struct solution_struct* pop, int size) {
 void cross_over(struct solution_struct* curt_pop, struct solution_struct* new_pop)
 {
     //exchange from the node x
-    int pair = POP_SIZE/2;
-    for(int p = 0; p < pair; p++) {
+    for(int p = 0; p < POP_SIZE; p++) {
         float exchange_rate = rand_01();
         int chromosome_length = new_pop[p].prob->n-1;
         if(exchange_rate < CROSSOVER_RATE){
+            int exchange_pair = (int)rand_int(0, POP_SIZE-1);
             int exchange_node = rand_int(0, chromosome_length);
-            for(int i = exchange_node; i < chromosome_length + 1; i++) {
+            int exchange_length = rand_int(exchange_node, chromosome_length);
+            for(int i = exchange_node; i < exchange_length; i++) {
                 int temp_1 = new_pop[p].x[i];
-                int temp_2 = new_pop[p+pair].x[i];
+                int temp_2 = new_pop[exchange_pair].x[i];
                 new_pop[p].x[i] = temp_2;
-                new_pop[p+pair].x[i] = temp_1;
-                // printf("%d %d--%d %d\n", temp_1, temp_2, new_pop[p+pair].x[i], new_pop[p].x[i]);
+                new_pop[exchange_pair].x[i] = temp_1;
             }
             evaluate_solution(&new_pop[p]);
-            evaluate_solution(&new_pop[p+pair]);
+            evaluate_solution(&new_pop[exchange_pair]);
         }
     }
     // printf("cross_over successfully!");
@@ -283,22 +277,24 @@ void cross_over(struct solution_struct* curt_pop, struct solution_struct* new_po
 
 //apply mutation to a population
 //every chromosome can mutate randomly
-void mutation(struct solution_struct* pop) {
+//using dyadic mutation method
+//using XRL
+void mutation(struct solution_struct* curt_pop, struct solution_struct* new_pop) {
     float mutationRate = 0;
     for(int p = 0; p < POP_SIZE; p++) {
-        for(int i = 0; i < pop[p].prob->n; i++) {
+        for(int i = 0; i < new_pop[p].prob->n; i++) {
             mutationRate = rand_01();
             // printf("%f\n",mutationRate);
             if(mutationRate <= MUTATION_RATE) {
-                if(pop[p].x[i] ==1) {
-                    pop[p].x[i] = 0;
+                if(new_pop[p].x[i] == curt_pop[p].x[i]) {
+                    new_pop[p].x[i] = 0;
                 }
                 else {
-                    pop[p].x[i] = 1;
+                    new_pop[p].x[i] = 1;
                 }
             }
         }
-        evaluate_solution(&pop[p]);
+        evaluate_solution(&new_pop[p]);
     }
 }
 
@@ -426,9 +422,11 @@ int MA(struct problem_struct* prob)
     while(gen<MAX_NUM_OF_GEN && time_spent < MAX_TIME)
     {
         cross_over(curt_pop, new_pop);
-        mutation(new_pop);
+        mutation(curt_pop, new_pop);
         feasibility_repair(new_pop);
+        feasibility_repair(curt_pop);
         local_search_first_descent(new_pop);
+        local_search_first_descent(curt_pop);        
         replacement(curt_pop, new_pop);
         gen++;
         time_fin=clock();
@@ -461,7 +459,7 @@ int main(int argc, const char * argv[]){
     for(int k=0; k<num_of_problems; k++) {
         printf("This is the solution of problem %d\n",k+1);
         for(int run=0; run<NUM_OF_RUNS; run++) {
-            srand(RAND_SEED[run]);
+            srand((unsigned)time(NULL));
             MA(my_problems[k]); //call MA
         }
         output_solution(&best_sln, NULL);
