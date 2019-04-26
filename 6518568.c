@@ -419,9 +419,13 @@ void replacement(struct solution_struct* curt_pop, struct solution_struct* new_p
             // printf("new temp!");
         }
         for(int i = k; i > 0 && rep_pop[k-1].objective < rep_pop[k].objective; i--) {
+            free(rep_pop[k].cap_left);
+            free(rep_pop[k].x);
             if(copy_solution(&rep_pop[k], &rep_pop[k-1])){
                 // printf("good copy1");
             }
+            free(rep_pop[k-1].cap_left);
+            free(rep_pop[k-1].x);
             if(copy_solution(&rep_pop[k-1], &temp_pop)){
                 // printf("good copy2");
             }
@@ -429,7 +433,11 @@ void replacement(struct solution_struct* curt_pop, struct solution_struct* new_p
     }
     //replacing the top100 to the new_pop
     for(int l = 0; l < POP_SIZE; l++) {
+        free(new_pop[l].cap_left);
+        free(new_pop[l].x);
         copy_solution(&new_pop[l], &rep_pop[l]);
+        free(curt_pop[l].cap_left);
+        free(curt_pop[l].x);
         copy_solution(&curt_pop[l], &rep_pop[l]);
     }
     free_population(rep_pop, POP_SIZE*2);
@@ -457,13 +465,12 @@ int MA(struct problem_struct* prob)
     clock_t time_start, time_fin;
     time_start = clock();
     double time_spent=0;
-    while(gen<MAX_NUM_OF_GEN && time_spent < MAX_TIME)
-    {
+    while(gen<MAX_NUM_OF_GEN && time_spent < MAX_TIME) {
         cross_over(curt_pop, new_pop);
-        // mutation(new_pop);
+        mutation(new_pop);
         feasibility_repair(new_pop);
-        // local_search_first_descent(new_pop);
-        // replacement(curt_pop, new_pop);
+        local_search_first_descent(new_pop);
+        replacement(curt_pop, new_pop);
         gen++;
         time_fin=clock();
         time_spent = (double)(time_fin-time_start)/CLOCKS_PER_SEC;
