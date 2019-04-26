@@ -5,12 +5,13 @@
 #include <time.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <string.h>
 
 /* parameters */
-int RAND_SEED[] = {1,20,30,40,50,60,70,80,90,100,110, 120, 130, 140, 150, 160, 170, 180, 190, 200};
+// int RAND_SEED[] = {1,20,30,40,50,60,70,80,90,100,110, 120, 130, 140, 150, 160, 170, 180, 190, 200};
 int NUM_OF_RUNS = 5;
-static int POP_SIZE = 200; //global parameters
-int MAX_NUM_OF_GEN = 1000; //max number of generations
+static int POP_SIZE = 100; //global parameters
+int MAX_NUM_OF_GEN = 500; //max number of generations
 int MAX_TIME = 60;  //max amount of time permited (in sec)
 float CROSSOVER_RATE = 0.8;
 float MUTATION_RATE = 0.2;
@@ -93,7 +94,7 @@ struct problem_struct** load_problems(const char *filename)
     FILE *fp;
     int i, j, k;
     int num_of_problems, num_of_variables, num_of_constraints,optimal_solution_value;
-    int counter = 0;
+    int counterer = 0;
 
     fp = fopen(filename, "r");
     fscanf(fp,"%d", &num_of_problems);
@@ -112,7 +113,7 @@ struct problem_struct** load_problems(const char *filename)
             fscanf(fp,"%d", &p_value);
             my_problems[k]->items[j].dim = dim;
             my_problems[k]->items[j].p = p_value;
-            counter++;
+            counterer++;
         }
         j = 0;
         for(j =0; j < dim; j++) {
@@ -120,7 +121,7 @@ struct problem_struct** load_problems(const char *filename)
                 int size;
                 fscanf(fp,"%d", &size);
                 my_problems[k]->items[i].size[j] = size;
-                counter++;
+                counterer++;
             }
         }
         i = 0;
@@ -128,7 +129,7 @@ struct problem_struct** load_problems(const char *filename)
             int capacities;
             fscanf(fp,"%d", &capacities);
             my_problems[k]->capacities[i] = capacities;
-            counter++;
+            counterer++;
         }
     }
     fclose(fp);
@@ -259,17 +260,13 @@ void cross_over(struct solution_struct* curt_pop, struct solution_struct* new_po
         float exchange_rate = rand_01();
         int chromosome_length = new_pop[p].prob->n-1;
         if(exchange_rate < CROSSOVER_RATE){
-            int exchange_pair = (int)rand_int(0, POP_SIZE-1);
+            int exchange_pair = rand_int(0, POP_SIZE-1);
             int exchange_node = rand_int(0, chromosome_length);
-            int exchange_length = rand_int(exchange_node, chromosome_length);
-            for(int i = exchange_node; i < exchange_length; i++) {
-                int temp_1 = new_pop[p].x[i];
-                int temp_2 = new_pop[exchange_pair].x[i];
-                new_pop[p].x[i] = temp_2;
-                new_pop[exchange_pair].x[i] = temp_1;
+            // int exchange_length = rand_int(exchange_node, chromosome_length);
+            for(int i = exchange_node; i < new_pop[p].prob->n; i++) {
+                new_pop[p].x[i] = curt_pop[exchange_pair].x[i];
             }
             evaluate_solution(&new_pop[p]);
-            evaluate_solution(&new_pop[exchange_pair]);
         }
     }
     // printf("cross_over successfully!");
@@ -279,18 +276,21 @@ void cross_over(struct solution_struct* curt_pop, struct solution_struct* new_po
 //every chromosome can mutate randomly
 //using dyadic mutation method
 //using XRL
-void mutation(struct solution_struct* curt_pop, struct solution_struct* new_pop) {
+void mutation(struct solution_struct* new_pop) {
     float mutationRate = 0;
     for(int p = 0; p < POP_SIZE; p++) {
         for(int i = 0; i < new_pop[p].prob->n; i++) {
             mutationRate = rand_01();
+            int mutation_pair = rand_int(0, (new_pop[p].prob->n)-1);
             // printf("%f\n",mutationRate);
             if(mutationRate <= MUTATION_RATE) {
-                if(new_pop[p].x[i] == curt_pop[p].x[i]) {
-                    new_pop[p].x[i] = 0;
-                }
-                else {
-                    new_pop[p].x[i] = 1;
+                if(new_pop[p].x[i] == new_pop[mutation_pair].x[i]) {
+                    if(new_pop[p].x[i] == 0) {
+                        new_pop[p].x[i] = 1;
+                    }
+                    else {
+                        new_pop[p].x[i] = 0;
+                    }
                 }
             }
         }
@@ -304,21 +304,59 @@ void feasibility_repair(struct solution_struct* pop) {
     //repair the feasibility and objective of the solution
     for(int p = 0; p < POP_SIZE; p++) {
         if(pop[p].feasibility < 0) {
-            for(int i = 0; i < pop[p].prob->n; i++) {
-                if(pop[p].x[i] == 1) {
-                    pop[p].x[i] = 0;
-                    for(int j = 0; j < pop[p].prob->dim; j++) {
-                        pop[p].cap_left[j] += pop[p].prob->items[i].size[j];
-                    }   
-                }
-                evaluate_solution (&pop[p]);
-                if(pop[p].feasibility > 0) {
-                    break;
-                }
+        int counter, i;
+        for(i = 0; i < pop[p].prob->n; i++) {
+            if(pop[p].x[i] == 1){
+                counter++;
             }
+        } 
+        int p_value[counter];
+        int p_index[counter];
+        memset(p_value,0,sizeof(int)*counter);
+        memset(p_index,0,sizeof(int)*counter);
+        // for(int j = 0; j < counter; j++) {
+        //     printf("value: %d, index: %d\n",pvalue[j],pindex[j]);
+        // }
+        counter = 0;
+        for(i = 0; i < pop[p].prob->n; i++) {
+            if(pop[p].x[i] == 1){
+                int value = pop[p].prob->items[i].p;
+                int index = i;
+                p_value[counter] = value;
+                p_index[counter] = index;
+                counter++;
+            }
+        }
+        //insertion sort
+        for(i = 1; i < counter; i++) {
+            int temp_index, temp_value,j;
+            temp_index = p_index[i];
+            temp_value = p_value[i];
+            for(j = i-1; j >= 0 && p_value[j] > temp_value; j-- ) {
+                p_value[j+1] = p_value[j];
+                p_index[j+1] = p_index[j];
+            }
+            p_value[j+1] = temp_value;
+            p_index[j+1] = temp_index;
+        }
+        
+        // for(i = 0; i <counter; i++) {
+        //     printf("%d\n", p_value[i]);
+        // }
+        // printf("-----------------");
+        int remove_node = 0;
+        while(pop[p].feasibility < 0) {
+            pop[p].x[p_index[remove_node]] = 0;
+            for(int i = 0; i < pop[p].prob->dim; i++) {
+                pop[p].cap_left[i] += pop[p].prob->items[p_index[remove_node]].size[i];
+            }
+            evaluate_solution (&pop[p]);
+            remove_node++;
         }
     }
 }
+}
+
 
 //local search
 //search the first x0 and change to x1 if the capacity is enough
@@ -422,12 +460,10 @@ int MA(struct problem_struct* prob)
     while(gen<MAX_NUM_OF_GEN && time_spent < MAX_TIME)
     {
         cross_over(curt_pop, new_pop);
-        mutation(curt_pop, new_pop);
+        // mutation(new_pop);
         feasibility_repair(new_pop);
-        feasibility_repair(curt_pop);
-        local_search_first_descent(new_pop);
-        local_search_first_descent(curt_pop);        
-        replacement(curt_pop, new_pop);
+        // local_search_first_descent(new_pop);
+        // replacement(curt_pop, new_pop);
         gen++;
         time_fin=clock();
         time_spent = (double)(time_fin-time_start)/CLOCKS_PER_SEC;
