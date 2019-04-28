@@ -658,14 +658,6 @@ int MA(struct problem_struct* prob)
 }
 
 int main(int argc, const char * argv[]){
-    FILE *fp;
-    int num_of_problems;
-    fp = fopen(argv[2], "r");
-    fscanf(fp,"%d", &num_of_problems);
-
-    fp = fopen(argv[2], "r");
-    fscanf(fp,"%d", &num_of_problems);
-    fclose(fp);
     char data_file[50]={}, solution_file[50]={}, maxtime[50]={};
     if(argc < 3) {
         printf("Illegal numbers of arguments!");
@@ -689,13 +681,20 @@ int main(int argc, const char * argv[]){
             }
         }
     }
+    FILE *fp;
+    int num_of_problems;
+    fp = fopen(data_file, "r");
+    fscanf(fp,"%d", &num_of_problems);
+
+    fclose(fp);
     //out put the file to the giving path
     // stdout = freopen(solution_file, "w", stdout);
     // printf("%s, %s, %d\n", data_file, solution_file, MAX_TIME);
+    printf("%d\n", num_of_problems);
     struct problem_struct** my_problems = load_problems(data_file);
     
     for(int k=0; k<num_of_problems; k++) {
-        printf("This is the solution of problem %d\n",k);
+        // printf("This is the solution of problem %d\n",k);
         for(int run=0; run<NUM_OF_RUNS; run++) {
             // srand((unsigned)time(NULL));
             srand(RAND_SEED[run]);
