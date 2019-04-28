@@ -11,7 +11,7 @@
 int RAND_SEED[] = {1,20,30,40,50,60,70,80,90,100,110, 120, 130, 140, 150, 160, 170, 180, 190, 200};
 int NUM_OF_RUNS = 5;
 static int POP_SIZE = 200; //global parameters
-int MAX_NUM_OF_GEN = 200; //max number of generations
+int MAX_NUM_OF_GEN = 500; //max number of generations
 int MAX_TIME = 60;  //max amount of time permited (in sec)
 float CROSSOVER_RATE = 0.8;
 float MUTATION_RATE = 0.2;
@@ -161,6 +161,7 @@ void evaluate_solution(struct solution_struct* sln)
 }
 
 //output a given solution to a file
+//version 1
 void output_solution(struct solution_struct* sln, const char* out_file) {
     evaluate_solution(sln);
     // printf("sln.feas=%d, sln.obj=%f\n", sln->feasibility, sln->objective);
@@ -171,14 +172,6 @@ void output_solution(struct solution_struct* sln, const char* out_file) {
         printf("%d ", sln->x[i]);
     }
     printf("\n");
-
-    // int number_of_items = (int)sln->prob->n;
-    // printf("%d %d\n",(int)sln->objective,sln->feasibility);
-    // int sum = 0;
-    // for(int i = 0; i < number_of_items; i++) {
-    //     sum += sln->x[i] * sln->prob->items[i].p;
-    // }
-    // printf("sum: %d\n", sum);
 }
 
 //intialise the population with random solutions
@@ -277,6 +270,7 @@ void cross_over(struct solution_struct* curt_pop, struct solution_struct* new_po
                 exchange_node1 -= curt_pop[counter1].objective;
                 counter1++;
             }
+            //the first node to do crossover operation
             exchange_node1 = counter1-1;
             long int exchange_node2 = (int)total_p * rand_01();
             // printf("e2: %ld\n", exchange_node2);
@@ -284,30 +278,17 @@ void cross_over(struct solution_struct* curt_pop, struct solution_struct* new_po
                 exchange_node2 -= curt_pop[counter2].objective;
                 counter2++;
             }
+            //the second node to do crossover operation
             exchange_node2 = counter2-1;
             // printf("exchange_node: %ld %ld\n", exchange_node1, exchange_node2);
             int exchange_node = rand_int(0, chromosome_length);
+            //crossver operation
             for(i = exchange_node; i < new_pop[p].prob->n; i++) {
                 new_pop[exchange_node1].x[i] = curt_pop[exchange_node2].x[i];
             }
             evaluate_solution(&new_pop[p]);
         }
     }
-
-    //normal crossover method
-    // for(int p = 0; p < POP_SIZE; p++) {
-    //     float exchange_rate = rand_01();
-    //     int chromosome_length = new_pop[p].prob->n-1;
-    //     if(exchange_rate < CROSSOVER_RATE){
-    //         int exchange_pair = rand_int(0, POP_SIZE-1);
-    //         int exchange_node = rand_int(0, chromosome_length);
-    //         // int exchange_length = rand_int(exchange_node, chromosome_length);
-    //         for(int i = exchange_node; i < new_pop[p].prob->n; i++) {
-    //             new_pop[p].x[i] = curt_pop[exchange_pair].x[i];
-    //         }
-    //         evaluate_solution(&new_pop[p]);
-    //     }
-    // }    
 }
 
 //apply mutation to a population
@@ -322,6 +303,7 @@ void mutation(struct solution_struct* new_pop) {
             mutationRate = rand_01();
             if(mutationRate <= MUTATION_RATE) {
             int mutation_pair = rand_int(0, POP_SIZE-1);
+                //XOR operation
                 if(new_pop[p].x[i] == new_pop[mutation_pair].x[i]) {
                     if(new_pop[p].x[i] == 0) {
                         new_pop[p].x[i] = 1;
@@ -334,20 +316,6 @@ void mutation(struct solution_struct* new_pop) {
             }
         }
     }
-    //normal mutation method
-    // for(int p = 0; p < POP_SIZE; p++) {
-    //     mutationRate = rand_01();
-    //     if(mutationRate <= MUTATION_RATE) {
-    //         int mutation_node = rand_int(0, new_pop[p].prob->n-1);
-    //         if(new_pop[p].x[mutation_node] == 1) {
-    //             new_pop[p].x[mutation_node] = 0;
-    //         }
-    //         else {
-    //             new_pop[p].x[mutation_node] = 1;
-    //         }
-    //         evaluate_solution(&new_pop[p]);
-    //     }
-    // }
 }
 
 //modify the solutions that violate the capacity constraints
@@ -365,6 +333,7 @@ void feasibility_repair(struct solution_struct* pop) {
             } 
             int p_value[counter];
             int p_index[counter];
+            //set all the elements in array to 0
             memset(p_value,0,sizeof(int)*counter);
             memset(p_index,0,sizeof(int)*counter);
             // for(int j = 0; j < counter; j++) {
@@ -392,7 +361,7 @@ void feasibility_repair(struct solution_struct* pop) {
                 p_value[j+1] = temp_value;
                 p_index[j+1] = temp_index;
             }
-        
+            //repair the feasibility
             int remove_node = 0;
             while(pop[p].feasibility < 0) {
                 pop[p].x[p_index[remove_node]] = 0;
@@ -415,8 +384,6 @@ void local_search_first_descent(struct solution_struct* pop) {
     // greedy search
     for(int p = 0; p < POP_SIZE; p++) {
         int counter = 0;
-        // printf("1:%f %d %d %d %d %d %d", pop[p].objective,pop[p].cap_left[0],pop[p].cap_left[1],pop[p].cap_left[2],pop[p].cap_left[3],pop[p].cap_left[4],counter);
-        
         for(int i = 0; i < pop[p].prob->n; i++) {
             if(pop[p].x[i] == 0) {
                 int* cap_left_test = pop[p].cap_left;
@@ -438,129 +405,6 @@ void local_search_first_descent(struct solution_struct* pop) {
             }
         }
     }
-    /*-------------------------------------*/
-    // hill climbing
-    // for(int p = 0; p < POP_SIZE; p++) {
-    //     int search_point = (int)pop[p].prob->n*rand_01();
-    //     if(search_point - 40 > 0 && pop[p].prob->n - search_point > 40) {
-    //         int idx = 0;
-    //         int searchnode[41];
-    //         memset(searchnode,0,sizeof(int)*41);
-    //         int i;
-    //         for(i = 0; i <= 20; i++) {
-    //             int x_capacity =1;
-    //             if(pop[p].x[search_point-i] == 0) {
-    //                 int* cap_left_test = pop[p].cap_left; 
-    //                 for(int j = 0; j < pop[p].prob->dim; j++) {
-    //                     cap_left_test[j] -= pop[p].prob->items[i].size[j];
-    //                 }
-    //                 for(int k = 0; k < pop[p].prob->dim; k++) {
-    //                     if(cap_left_test[k] < 0) {
-    //                         x_capacity = 0;
-    //                     }
-    //                 }
-    //                 if(x_capacity == 1) {
-    //                     searchnode[i] = pop[p].prob->items[search_point-i].p;
-    //                     continue;
-    //                 }
-    //                 x_capacity = 1;
-    //             }
-    //         }
-    //         for(i = 1; i <= 20; i++) {
-    //             int x_capacity =1;
-    //             if(pop[p].x[search_point+i] == 0) {
-    //                 int* cap_left_test = pop[p].cap_left; 
-    //                 for(int j = 0; j < pop[p].prob->dim; j++) {
-    //                     cap_left_test[j] -= pop[p].prob->items[i].size[j];
-    //                 }
-    //                 for(int k = 0; k < pop[p].prob->dim; k++) {
-    //                     if(cap_left_test[k] < 0) {
-    //                         x_capacity = 0;
-    //                     }
-    //                 }
-    //                 if(x_capacity == 1) {
-    //                     searchnode[i+20] = pop[p].prob->items[search_point+i].p;
-    //                     continue;
-    //                 }
-    //                 x_capacity = 1;
-    //             }
-    //         }
-    //         for(i = 0; i < 41; i++) {
-    //             int max_p = 0;
-    //             if(searchnode[i] > max_p) {
-    //                 max_p = searchnode[i];
-    //                 idx = i;
-    //             }
-    //         }
-    //         pop[p].x[idx] = 1;
-    //     }
-    //     else if(search_point - 10 < 0) {
-    //         int idx = 0;
-    //         int searchnode[41];
-    //         memset(searchnode,0,sizeof(int)*41);
-    //         int i;
-    //         for(i = 0; i <= 40; i++) {
-    //             int x_capacity =1;
-    //             if(pop[p].x[search_point+i] == 0) {
-    //                 int* cap_left_test = pop[p].cap_left; 
-    //                 for(int j = 0; j < pop[p].prob->dim; j++) {
-    //                     cap_left_test[j] -= pop[p].prob->items[i].size[j];
-    //                 }
-    //                 for(int k = 0; k < pop[p].prob->dim; k++) {
-    //                     if(cap_left_test[k] < 0) {
-    //                         x_capacity = 0;
-    //                     }
-    //                 }
-    //                 if(x_capacity == 1) {
-    //                     searchnode[i] = pop[p].prob->items[search_point+i].p;
-    //                     continue;
-    //                 }
-    //                 x_capacity = 1;
-    //             }
-    //         }
-    //         for(i = 0; i < 41; i++) {
-    //             int max_p = 0;
-    //             if(searchnode[i] > max_p) {
-    //                 max_p = searchnode[i];
-    //                 idx = i;
-    //             }
-    //         }
-    //         pop[p].x[idx] = 1;
-    //     }
-    //     else if(pop[p].prob->n - search_point < 40) {
-    //         int idx = 0;
-    //         int searchnode[41];
-    //         memset(searchnode,0,sizeof(int)*41);
-    //         int i;
-    //         for(i = 0; i <= 40; i++) {
-    //             int x_capacity =1;
-    //             if(pop[p].x[search_point-i] == 0) {
-    //                 int* cap_left_test = pop[p].cap_left; 
-    //                 for(int j = 0; j < pop[p].prob->dim; j++) {
-    //                     cap_left_test[j] -= pop[p].prob->items[i].size[j];
-    //                 }
-    //                 for(int k = 0; k < pop[p].prob->dim; k++) {
-    //                     if(cap_left_test[k] < 0) {
-    //                         x_capacity = 0;
-    //                     }
-    //                 }
-    //                 if(x_capacity == 1) {
-    //                     searchnode[i] = pop[p].prob->items[search_point-i].p;
-    //                     continue;
-    //                 }
-    //                 x_capacity = 1;
-    //             }
-    //             for(i = 0; i < 41; i++) {
-    //             int max_p = 0;
-    //             if(searchnode[i] > max_p) {
-    //                 max_p = searchnode[i];
-    //                 idx = i;
-    //             }
-    //         }
-    //         pop[p].x[idx] = 1;
-    //         }
-    //     }
-    // }
 }
 
 // replacement
@@ -589,9 +433,6 @@ void replacement(struct solution_struct* curt_pop, struct solution_struct* new_p
             free(rep_pop[i+1].x);
             copy_solution(&rep_pop[i+1], &rep_pop[i]);
             i--;
-            // free(rep_pop[i-1].cap_left);
-            // free(rep_pop[i-1].x);
-            // copy_solution(&rep_pop[i-1], &temp_pop);
         }
         free(rep_pop[i+1].cap_left);
         free(rep_pop[i+1].x);
@@ -615,15 +456,6 @@ void replacement(struct solution_struct* curt_pop, struct solution_struct* new_p
         free(temp_pop.cap_left); 
         free(temp_pop.x);
     }
-    // if(temp_best.objective < curt_pop[0].objective) {
-    //     copy_solution(&temp_best, &curt_pop[0]);
-    // }
-    // else {
-    //     copy_solution(&new_pop[0], &temp_best);
-    //     copy_solution(&curt_pop[0], &temp_best);
-    // }
-    // printf("%f\n",temp_best.objective);
-    // printf("%f\n", curt_pop[0].objective);
 }
 
 // update global best solution with best solution from pop if better
@@ -649,7 +481,7 @@ int MA(struct problem_struct* prob)
     while(gen<MAX_NUM_OF_GEN && time_spent < MAX_TIME) {
         cross_over(curt_pop, new_pop);
         mutation(new_pop);
-        // feasibility_repair(new_pop);
+        feasibility_repair(new_pop);
         local_search_first_descent(new_pop);
         replacement(curt_pop, new_pop);
         gen++;
@@ -689,15 +521,17 @@ int main(int argc, const char * argv[]){
             }
         }
     }
+
     FILE *fp;
     int num_of_problems;
     fp = fopen(data_file, "r");
     fscanf(fp,"%d", &num_of_problems);
-
     fclose(fp);
+
     //out put the file to the giving path
     stdout = freopen(solution_file, "w", stdout);
     // printf("%s, %s, %d\n", data_file, solution_file, MAX_TIME);
+
     printf("%d\n", num_of_problems);
     struct problem_struct** my_problems = load_problems(data_file);
     
@@ -709,7 +543,7 @@ int main(int argc, const char * argv[]){
             srand(RAND_SEED[run]);
             MA(my_problems[k]); //call MA
         }
-        output_solution(&best_sln, NULL);
+        output_solution(&best_sln, data_file);
         free_problem(my_problems[k]); //free problem data memory
     }
     free(my_problems); //free problems array
