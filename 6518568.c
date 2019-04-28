@@ -10,11 +10,11 @@
 /* parameters */
 int RAND_SEED[] = {1,20,30,40,50,60,70,80,90,100,110, 120, 130, 140, 150, 160, 170, 180, 190, 200};
 int NUM_OF_RUNS = 5;
-static int POP_SIZE = 100; //global parameters
-int MAX_NUM_OF_GEN = 1000; //max number of generations
+static int POP_SIZE = 200; //global parameters
+int MAX_NUM_OF_GEN = 200; //max number of generations
 int MAX_TIME = 60;  //max amount of time permited (in sec)
 float CROSSOVER_RATE = 0.8;
-float MUTATION_RATE = 0.3;
+float MUTATION_RATE = 0.2;
 
 struct solution_struct best_sln;  //global best solution
 struct solution_struct temp_best; // temporary best
@@ -162,13 +162,23 @@ void evaluate_solution(struct solution_struct* sln)
 
 //output a given solution to a file
 void output_solution(struct solution_struct* sln, const char* out_file) {
+    evaluate_solution(sln);
     // printf("sln.feas=%d, sln.obj=%f\n", sln->feasibility, sln->objective);
-    printf("%f\n",sln->objective);
+    printf("%d\n",(int)sln->objective);
+
     int number_of_items = (int)sln->prob->n;
     for(int i = 0; i < number_of_items; i++) {
         printf("%d ", sln->x[i]);
     }
     printf("\n");
+
+    // int number_of_items = (int)sln->prob->n;
+    // printf("%d %d\n",(int)sln->objective,sln->feasibility);
+    // int sum = 0;
+    // for(int i = 0; i < number_of_items; i++) {
+    //     sum += sln->x[i] * sln->prob->items[i].p;
+    // }
+    // printf("sum: %d\n", sum);
 }
 
 //intialise the population with random solutions
@@ -389,7 +399,7 @@ void feasibility_repair(struct solution_struct* pop) {
                 for(int i = 0; i < pop[p].prob->dim; i++) {
                     pop[p].cap_left[i] += pop[p].prob->items[p_index[remove_node]].size[i];
                 }
-                evaluate_solution (&pop[p]);
+                evaluate_solution(&pop[p]);
                 remove_node++;
             }
         }   
@@ -402,155 +412,155 @@ void feasibility_repair(struct solution_struct* pop) {
 //what if there it is already the best solution?
 void local_search_first_descent(struct solution_struct* pop) {
     int x_capacity = 1;
-    //greedy search
-    // for(int p = 0; p < POP_SIZE; p++) {
-    //     int counter = 0;
-    //     // printf("1:%f %d %d %d %d %d %d", pop[p].objective,pop[p].cap_left[0],pop[p].cap_left[1],pop[p].cap_left[2],pop[p].cap_left[3],pop[p].cap_left[4],counter);
-        
-    //     for(int i = 0; i < pop[p].prob->n; i++) {
-    //         if(pop[p].x[i] == 0) {
-    //             int* cap_left_test = pop[p].cap_left;
-    //             for(int j = 0; j < pop[p].prob->dim; j++) {
-    //                 cap_left_test[j] -= pop[p].prob->items[i].size[j];
-    //                 if(cap_left_test[j] < 0) {
-    //                     x_capacity = 0;
-    //                 }
-    //             }
-    //             if(x_capacity == 0) {
-    //                 x_capacity = 1;
-    //                 continue;
-    //             }
-    //             else {
-    //                 pop[p].x[i] = 1;
-    //                 evaluate_solution(&pop[p]);
-    //                 continue;
-    //             }
-    //         }
-    //     }
-    // }
-    /*-------------------------------------*/
-    // hill climbing
+    // greedy search
     for(int p = 0; p < POP_SIZE; p++) {
-        int search_point = (int)pop[p].prob->n*rand_01();
-        if(search_point - 40 > 0 && pop[p].prob->n - search_point > 40) {
-            int idx = 0;
-            int searchnode[41];
-            memset(searchnode,0,sizeof(int)*41);
-            int i;
-            for(i = 0; i <= 20; i++) {
-                int x_capacity =1;
-                if(pop[p].x[search_point-i] == 0) {
-                    int* cap_left_test = pop[p].cap_left; 
-                    for(int j = 0; j < pop[p].prob->dim; j++) {
-                        cap_left_test[j] -= pop[p].prob->items[i].size[j];
+        int counter = 0;
+        // printf("1:%f %d %d %d %d %d %d", pop[p].objective,pop[p].cap_left[0],pop[p].cap_left[1],pop[p].cap_left[2],pop[p].cap_left[3],pop[p].cap_left[4],counter);
+        
+        for(int i = 0; i < pop[p].prob->n; i++) {
+            if(pop[p].x[i] == 0) {
+                int* cap_left_test = pop[p].cap_left;
+                for(int j = 0; j < pop[p].prob->dim; j++) {
+                    cap_left_test[j] -= pop[p].prob->items[i].size[j];
+                    if(cap_left_test[j] < 0) {
+                        x_capacity = 0;
                     }
-                    for(int k = 0; k < pop[p].prob->dim; k++) {
-                        if(cap_left_test[k] < 0) {
-                            x_capacity = 0;
-                        }
-                    }
-                    if(x_capacity == 1) {
-                        searchnode[i] = pop[p].prob->items[search_point-i].p;
-                        continue;
-                    }
+                }
+                if(x_capacity == 0) {
                     x_capacity = 1;
+                    continue;
                 }
-            }
-            for(i = 1; i <= 20; i++) {
-                int x_capacity =1;
-                if(pop[p].x[search_point+i] == 0) {
-                    int* cap_left_test = pop[p].cap_left; 
-                    for(int j = 0; j < pop[p].prob->dim; j++) {
-                        cap_left_test[j] -= pop[p].prob->items[i].size[j];
-                    }
-                    for(int k = 0; k < pop[p].prob->dim; k++) {
-                        if(cap_left_test[k] < 0) {
-                            x_capacity = 0;
-                        }
-                    }
-                    if(x_capacity == 1) {
-                        searchnode[i+20] = pop[p].prob->items[search_point+i].p;
-                        continue;
-                    }
-                    x_capacity = 1;
+                else {
+                    pop[p].x[i] = 1;
+                    evaluate_solution(&pop[p]);
+                    continue;
                 }
-            }
-            for(i = 0; i < 41; i++) {
-                int max_p = 0;
-                if(searchnode[i] > max_p) {
-                    max_p = searchnode[i];
-                    idx = i;
-                }
-            }
-            pop[p].x[idx] = 1;
-        }
-        else if(search_point - 10 < 0) {
-            int idx = 0;
-            int searchnode[41];
-            memset(searchnode,0,sizeof(int)*41);
-            int i;
-            for(i = 0; i <= 40; i++) {
-                int x_capacity =1;
-                if(pop[p].x[search_point+i] == 0) {
-                    int* cap_left_test = pop[p].cap_left; 
-                    for(int j = 0; j < pop[p].prob->dim; j++) {
-                        cap_left_test[j] -= pop[p].prob->items[i].size[j];
-                    }
-                    for(int k = 0; k < pop[p].prob->dim; k++) {
-                        if(cap_left_test[k] < 0) {
-                            x_capacity = 0;
-                        }
-                    }
-                    if(x_capacity == 1) {
-                        searchnode[i] = pop[p].prob->items[search_point+i].p;
-                        continue;
-                    }
-                    x_capacity = 1;
-                }
-            }
-            for(i = 0; i < 41; i++) {
-                int max_p = 0;
-                if(searchnode[i] > max_p) {
-                    max_p = searchnode[i];
-                    idx = i;
-                }
-            }
-            pop[p].x[idx] = 1;
-        }
-        else if(pop[p].prob->n - search_point < 40) {
-            int idx = 0;
-            int searchnode[41];
-            memset(searchnode,0,sizeof(int)*41);
-            int i;
-            for(i = 0; i <= 40; i++) {
-                int x_capacity =1;
-                if(pop[p].x[search_point-i] == 0) {
-                    int* cap_left_test = pop[p].cap_left; 
-                    for(int j = 0; j < pop[p].prob->dim; j++) {
-                        cap_left_test[j] -= pop[p].prob->items[i].size[j];
-                    }
-                    for(int k = 0; k < pop[p].prob->dim; k++) {
-                        if(cap_left_test[k] < 0) {
-                            x_capacity = 0;
-                        }
-                    }
-                    if(x_capacity == 1) {
-                        searchnode[i] = pop[p].prob->items[search_point-i].p;
-                        continue;
-                    }
-                    x_capacity = 1;
-                }
-                for(i = 0; i < 41; i++) {
-                int max_p = 0;
-                if(searchnode[i] > max_p) {
-                    max_p = searchnode[i];
-                    idx = i;
-                }
-            }
-            pop[p].x[idx] = 1;
             }
         }
     }
+    /*-------------------------------------*/
+    // hill climbing
+    // for(int p = 0; p < POP_SIZE; p++) {
+    //     int search_point = (int)pop[p].prob->n*rand_01();
+    //     if(search_point - 40 > 0 && pop[p].prob->n - search_point > 40) {
+    //         int idx = 0;
+    //         int searchnode[41];
+    //         memset(searchnode,0,sizeof(int)*41);
+    //         int i;
+    //         for(i = 0; i <= 20; i++) {
+    //             int x_capacity =1;
+    //             if(pop[p].x[search_point-i] == 0) {
+    //                 int* cap_left_test = pop[p].cap_left; 
+    //                 for(int j = 0; j < pop[p].prob->dim; j++) {
+    //                     cap_left_test[j] -= pop[p].prob->items[i].size[j];
+    //                 }
+    //                 for(int k = 0; k < pop[p].prob->dim; k++) {
+    //                     if(cap_left_test[k] < 0) {
+    //                         x_capacity = 0;
+    //                     }
+    //                 }
+    //                 if(x_capacity == 1) {
+    //                     searchnode[i] = pop[p].prob->items[search_point-i].p;
+    //                     continue;
+    //                 }
+    //                 x_capacity = 1;
+    //             }
+    //         }
+    //         for(i = 1; i <= 20; i++) {
+    //             int x_capacity =1;
+    //             if(pop[p].x[search_point+i] == 0) {
+    //                 int* cap_left_test = pop[p].cap_left; 
+    //                 for(int j = 0; j < pop[p].prob->dim; j++) {
+    //                     cap_left_test[j] -= pop[p].prob->items[i].size[j];
+    //                 }
+    //                 for(int k = 0; k < pop[p].prob->dim; k++) {
+    //                     if(cap_left_test[k] < 0) {
+    //                         x_capacity = 0;
+    //                     }
+    //                 }
+    //                 if(x_capacity == 1) {
+    //                     searchnode[i+20] = pop[p].prob->items[search_point+i].p;
+    //                     continue;
+    //                 }
+    //                 x_capacity = 1;
+    //             }
+    //         }
+    //         for(i = 0; i < 41; i++) {
+    //             int max_p = 0;
+    //             if(searchnode[i] > max_p) {
+    //                 max_p = searchnode[i];
+    //                 idx = i;
+    //             }
+    //         }
+    //         pop[p].x[idx] = 1;
+    //     }
+    //     else if(search_point - 10 < 0) {
+    //         int idx = 0;
+    //         int searchnode[41];
+    //         memset(searchnode,0,sizeof(int)*41);
+    //         int i;
+    //         for(i = 0; i <= 40; i++) {
+    //             int x_capacity =1;
+    //             if(pop[p].x[search_point+i] == 0) {
+    //                 int* cap_left_test = pop[p].cap_left; 
+    //                 for(int j = 0; j < pop[p].prob->dim; j++) {
+    //                     cap_left_test[j] -= pop[p].prob->items[i].size[j];
+    //                 }
+    //                 for(int k = 0; k < pop[p].prob->dim; k++) {
+    //                     if(cap_left_test[k] < 0) {
+    //                         x_capacity = 0;
+    //                     }
+    //                 }
+    //                 if(x_capacity == 1) {
+    //                     searchnode[i] = pop[p].prob->items[search_point+i].p;
+    //                     continue;
+    //                 }
+    //                 x_capacity = 1;
+    //             }
+    //         }
+    //         for(i = 0; i < 41; i++) {
+    //             int max_p = 0;
+    //             if(searchnode[i] > max_p) {
+    //                 max_p = searchnode[i];
+    //                 idx = i;
+    //             }
+    //         }
+    //         pop[p].x[idx] = 1;
+    //     }
+    //     else if(pop[p].prob->n - search_point < 40) {
+    //         int idx = 0;
+    //         int searchnode[41];
+    //         memset(searchnode,0,sizeof(int)*41);
+    //         int i;
+    //         for(i = 0; i <= 40; i++) {
+    //             int x_capacity =1;
+    //             if(pop[p].x[search_point-i] == 0) {
+    //                 int* cap_left_test = pop[p].cap_left; 
+    //                 for(int j = 0; j < pop[p].prob->dim; j++) {
+    //                     cap_left_test[j] -= pop[p].prob->items[i].size[j];
+    //                 }
+    //                 for(int k = 0; k < pop[p].prob->dim; k++) {
+    //                     if(cap_left_test[k] < 0) {
+    //                         x_capacity = 0;
+    //                     }
+    //                 }
+    //                 if(x_capacity == 1) {
+    //                     searchnode[i] = pop[p].prob->items[search_point-i].p;
+    //                     continue;
+    //                 }
+    //                 x_capacity = 1;
+    //             }
+    //             for(i = 0; i < 41; i++) {
+    //             int max_p = 0;
+    //             if(searchnode[i] > max_p) {
+    //                 max_p = searchnode[i];
+    //                 idx = i;
+    //             }
+    //         }
+    //         pop[p].x[idx] = 1;
+    //         }
+    //     }
+    // }
 }
 
 // replacement
@@ -597,6 +607,9 @@ void replacement(struct solution_struct* curt_pop, struct solution_struct* new_p
         free(curt_pop[l].x);
         copy_solution(&curt_pop[l], &rep_pop[l]);
     }
+    // for(i = 0; i < POP_SIZE*2; i++) {
+    //     printf("%f\n", rep_pop[i].objective);
+    // }
     free_population(rep_pop, POP_SIZE*2);
     if(temp_pop.x!=NULL && temp_pop.cap_left!=NULL) { 
         free(temp_pop.cap_left); 
@@ -616,15 +629,10 @@ void replacement(struct solution_struct* curt_pop, struct solution_struct* new_p
 // update global best solution with best solution from pop if better
 void update_best_solution(struct solution_struct* pop)
 {
-    // copy_solution(&best_sln, &temp_best);
-    // for(int p = 0; p< POP_SIZE; p++) {
-    //     if(pop[p].objective > best_sln.objective) {
-    //         copy_solution(&best_sln, &pop[p]);
-    //     }
-    // }
-    copy_solution(&best_sln, pop);
-    // wait to be solved
-    // output_solution(&best_sln, NULL);
+    if(best_sln.objective < pop[0].objective) {
+        // printf("%f, %f\n",best_sln.objective,pop[0].objective);
+        copy_solution(&best_sln, &pop[0]);
+    }
 }
 
 //memetic algorithm
@@ -641,7 +649,7 @@ int MA(struct problem_struct* prob)
     while(gen<MAX_NUM_OF_GEN && time_spent < MAX_TIME) {
         cross_over(curt_pop, new_pop);
         mutation(new_pop);
-        feasibility_repair(new_pop);
+        // feasibility_repair(new_pop);
         local_search_first_descent(new_pop);
         replacement(curt_pop, new_pop);
         gen++;
@@ -688,13 +696,14 @@ int main(int argc, const char * argv[]){
 
     fclose(fp);
     //out put the file to the giving path
-    // stdout = freopen(solution_file, "w", stdout);
+    stdout = freopen(solution_file, "w", stdout);
     // printf("%s, %s, %d\n", data_file, solution_file, MAX_TIME);
     printf("%d\n", num_of_problems);
     struct problem_struct** my_problems = load_problems(data_file);
     
     for(int k=0; k<num_of_problems; k++) {
         // printf("This is the solution of problem %d\n",k);
+        best_sln.objective = 0;
         for(int run=0; run<NUM_OF_RUNS; run++) {
             // srand((unsigned)time(NULL));
             srand(RAND_SEED[run]);
